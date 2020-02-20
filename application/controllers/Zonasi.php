@@ -1,0 +1,167 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Zonasi extends CI_Controller {
+
+	public function index()
+	{
+		$data['web'] = $this->web->data_web()->row_array();
+		$data['school'] = $this->web->school()->result();
+		$data['sub_district'] = $this->web->sub_district()->result();
+
+		$this->load->view('zonasi', $data);
+	}
+
+	function daftar()
+	{
+		$this->form_validation->set_rules('nisn', 'NISN', 'trim|required|numeric|exact_length[10]|is_unique[std_registration.nisn]',[
+			'required' => 'NISN tidak boleh kosong',
+			'numeric' => 'NISN harus berupa angka',
+			'exact_length' => 'NISN harus terdiri dari 10 karakter',
+			'is_unique' => 'NISN sudah di gunakan untuk registrasi, silahkan cek kembali'
+		]);
+
+		$this->form_validation->set_rules('nama', 'Nama Lengkap', 'trim|required|min_length[2]',[
+			'required' => 'Nama Lengkap tidak boleh kosong',
+			'min_length' => 'Nama Lengkap harus lebih dari dua karakter',
+		]);
+
+		$this->form_validation->set_rules('tempat_lahir', 'Tempat Lahir', 'trim|required|min_length[2]',[
+			'required' => 'Tempat Lahir tidak boleh kosong',
+			'min_length' => 'Tempat Lahir harus lebih dari dua karakter',
+		]);
+
+		$this->form_validation->set_rules('tgl_lahir', 'Tanggal Lahir', 'trim|required|exact_length[2]|numeric|less_than[32]',[
+			'required' => 'Tanggal Lahir tidak boleh kosong',
+			'exact_length' => 'Tanggal Lahir harus dua karakter. Contoh : 04',
+			'numeric' => 'Tanggal Lahir harus angka',
+			'less_than' => 'Tanggal Lahir maksimal 31',
+		]);
+
+		$this->form_validation->set_rules('bln_lahir', 'Bulan Lahir', 'trim|required|exact_length[2]|numeric|less_than[13]',[
+			'required' => 'Bulan Lahir tidak boleh kosong',
+			'exact_length' => 'Bulan Lahir harus dua karakter. Contoh : 08',
+			'numeric' => 'Bulan Lahir harus angka',
+			'less_than' => 'Bulan Lahir maksimal 12',
+		]);
+
+		$this->form_validation->set_rules('thn_lahir', 'Tahun Lahir', 'trim|required|exact_length[4]|numeric|greater_than[1998]',[
+			'required' => 'Tahun Lahir tidak boleh kosong',
+			'exact_length' => 'Tahun Lahir harus dua karakter. Contoh : 2005',
+			'numeric' => 'Tahun Lahir harus angka',
+			'greater_than' => 'Tahun Lahir kelahiran maksimal 1999',
+		]);
+
+		$this->form_validation->set_rules('alamat', 'Alamat', 'trim|required|min_length[2]',[
+			'required' => 'Alamat tidak boleh kosong',
+			'min_length' => 'Alamat harus lebih dari dua karakter',
+		]);
+
+		$this->form_validation->set_rules('kecamatan', 'Kecamatan', 'trim|required',[
+			'required' => 'Kecamatan tidak boleh kosong',
+		]);
+
+		$this->form_validation->set_rules('sekolah_asal', 'Sekolah Asal', 'trim|required',[
+			'required' => 'Sekolah Asal tidak boleh kosong',
+		]);
+
+		$this->form_validation->set_rules('jarak', 'jarak', 'trim|required|numeric',[
+			'required' => 'Kecamatan tidak boleh kosong',
+			'numeric' => 'Jarak harus berupa angka',
+		]);
+
+		$this->form_validation->set_rules('nomor_hp', 'Nomor HP', 'trim|required',[
+			'required' => 'Nomor HP tidak boleh kosong, jika tidak memiliki silahkan masukkan nomor hp keluarga',
+		]);
+
+
+		if ($this->form_validation->run() == FALSE) {
+			$this->index();
+		} else {
+			$nisn = $this->input->post('nisn');
+		    $nama = $this->input->post('nama');
+		    $jk = $this->input->post('jk');
+		    $tempat_lahir = $this->input->post('tempat_lahir');
+		    $tgl_lahir = $this->input->post('tgl_lahir');
+		    $bln_lahir = $this->input->post('bln_lahir');
+		    $thn_lahir = $this->input->post('thn_lahir');
+		    $agama = $this->input->post('agama');
+		    $alamat = $this->input->post('alamat');
+		    $kecamatan = $this->input->post('kecamatan');
+		    $sekolah_asal = $this->input->post('sekolah_asal');
+		    $jarak = $this->input->post('jarak');
+		    $nomor_hp = $this->input->post('nomor_hp');
+
+		    /**
+		     * Membuat nomor pendaftaran
+		     */
+
+		    $prefix = 'PPDB';
+
+		    $this->db->select('RIGHT(std_registration.nomor_daftar,4) as kode', FALSE);
+			$this->db->order_by('nomor_daftar','DESC');
+			$this->db->limit(1);
+			$query = $this->db->get('std_registration'); 
+			if($query->num_rows() <> 0){      
+				   //jika kode ternyata sudah ada.      
+				   $data = $query->row();      
+				   $kode = intval($data->kode) + 1;    
+			  } else {      
+				   //jika kode belum ada      
+				   $kode = 1;    
+			  }
+
+			  $kodemax = str_pad($kode, 4, "0", STR_PAD_LEFT);
+			  $nomor_daftar = $prefix.'-'.$kodemax;
+			  
+
+		    $data = [
+		    	'nomor_daftar' => $nomor_daftar,
+	    		'nisn' => $nisn,
+			    'nama' => $nama,
+			    'jk' => $jk,
+			    'tempat_lahir' => $tempat_lahir,
+			    'tgl_lahir' => $tgl_lahir,
+			    'bln_lahir' => $bln_lahir,
+			    'thn_lahir' => $thn_lahir,
+			    'agama' => $agama,
+			    'alamat' => $alamat,
+			    'kecamatan' => $kecamatan,
+			    'sekolah_asal' => $sekolah_asal,
+			    'jarak' => $jarak,
+			    'nomor_hp' => $nomor_hp,
+			    'jalur' => '1',
+		    ];
+
+		    $insert = $this->insert->registrasi($data);
+
+		    if ($insert) {
+		    	$this->session->set_flashdata('success', '<strong>Pendaftaran berhasil</strong>, silahkan <a target="_blank" href="'.base_url('zonasi/cetak/').encrypt_url($nisn).'" class="btn btn-primary">klik di sini</a> untuk mencetak');
+		    	redirect('zonasi','refresh');
+		    } else {
+		    	$this->session->set_flashdata('error', 'Pendaftaran gagal, silahkan diulang kembali');
+		    	redirect('zonasi','refresh');
+		    }
+		    
+		}
+	}
+
+	function cetak($q)
+	{
+		$nisn = decrypt_url($q);
+		$this->db->where('nisn', $nisn);
+		$data['query'] = $this->db->get('std_registration')->row_array();
+
+		$data['web'] = $this->web->data_web()->row_array();
+
+		$this->load->view('bukti', $data);
+	}
+
+}
+
+/* End of file Zonasi.php */
+/* Location: ./application/controllers/Zonasi.php */
+
+// echo "<pre>";
+// 		print_r($_POST);
+// 		echo "</pre>";
